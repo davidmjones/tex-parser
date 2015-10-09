@@ -1,0 +1,10 @@
+lib/PTG/Class.pm
+lib/TeX/Catcodes.pm
+lib/TeX/Lexer.pm
+lib/TeX/Parser.pm
+lib/TeX/Token.pm
+lib/TeX/TokenList.pm
+LICENSE
+Makefile.PL
+MANIFEST			This list of files
+README

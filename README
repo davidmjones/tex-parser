@@ -1,3 +1,21 @@
+NAME
+    TeX::Parser
+
+DESCRIPTION
+    Implementation of a callback-driven TeX parser.
+
+AUTHOR
+    David M. Jones, <dmj@ams.org>
+
+SUPPORT
+    This code was developed at the American Mathematical Society (AMS)
+    and is being released with their permission in hopes that it might
+    be of interest or use to someone.  However, neither the author nor
+    the AMS is able to promise any additional support, including bug
+    fixes, enhancements or documentation.
+
+COPYRIGHT
+
 Copyright (c) 2015 American Mathematical Society
 
 Permission is hereby granted, free of charge, to any person obtaining
@@ -18,3 +36,4 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
