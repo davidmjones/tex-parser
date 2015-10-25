@@ -3,7 +3,7 @@ package TeX::Parser;
 use strict;
 use warnings;
 
-use version; our $VERSION = qv '1.6.1';
+use version; our $VERSION = qv '1.7.0';
 
 use base qw(TeX::Lexer);
 
@@ -538,11 +538,16 @@ sub parse {
 ##                                                                  ##
 ######################################################################
 
+use constant {
+    octal_token => make_character_token("'", CATCODE_OTHER),
+    hex_token   => make_character_token('"', CATCODE_OTHER),
+    alpha_token => make_character_token('`', CATCODE_OTHER),
+    point_token => make_character_token('.', CATCODE_OTHER),
+    continental_point_token => make_character_token(',', CATCODE_OTHER),
+};
+
 my $TOKEN_PLUS  = make_character_token('+', CATCODE_OTHER);
 my $TOKEN_MINUS = make_character_token('-', CATCODE_OTHER);
-my $TOKEN_OCT   = make_character_token("'", CATCODE_OTHER);
-my $TOKEN_HEX   = make_character_token('"', CATCODE_OTHER);
-my $TOKEN_CHAR  = make_character_token('`', CATCODE_OTHER);
 my $TOKEN_EQUAL = make_character_token('=', CATCODE_OTHER);
 
 # Finalization glitch workaround.
@@ -550,9 +555,6 @@ my $TOKEN_EQUAL = make_character_token('=', CATCODE_OTHER);
 END {
     undef $TOKEN_PLUS;
     undef $TOKEN_MINUS;
-    undef $TOKEN_OCT;
-    undef $TOKEN_HEX;
-    undef $TOKEN_CHAR;
     undef $TOKEN_EQUAL;
 }
 
@@ -705,7 +707,7 @@ sub read_optional_signs {
 sub read_integer_constant {
     my $self = shift;
 
-    my $number = "";
+    my $number = 0;
 
     while (my $token = $self->get_x_token()) {
         if ($self->is_digit($token)) {
@@ -800,15 +802,15 @@ sub read_literal_integer {
         croak "Can't handle <internal integer> ($next_token) yet";
     }
 
-    if ($next_token eq $TOKEN_OCT) { # token_eq() or token_equal()?
+    if ($next_token eq octal_token) { # token_eq() or token_equal()?
         return $self->read_octal_constant();
     }
 
-    if ($next_token eq $TOKEN_HEX) { # token_eq() or token_equal()?
+    if ($next_token eq hex_token) { # token_eq() or token_equal()?
         return $self->read_hexadecimal_constant();
     }
 
-    if ($next_token eq $TOKEN_CHAR) { # token_eq() or token_equal()?
+    if ($next_token eq alpha_token) { # token_eq() or token_equal()?
         return $self->read_alphabetic_constant();
     }
 
@@ -1103,6 +1105,86 @@ sub read_delimited_parameter {
     }
 
     return $parameter;
+}
+
+######################################################################
+##                                                                  ##
+##                       SCANNING DIMENSIONS                        ##
+##                                                                  ##
+######################################################################
+
+sub scan_keyword {
+    my $tex = shift;
+
+    my $s = shift;
+
+    my $scanned = TeX::TokenList->new();
+
+    my $match = 1;
+
+    my @chars = split '', $s;
+
+    for my $char (split '', $s) {
+        my $token = $tex->get_x_token();
+
+        $scanned->push($token);
+
+        if ($token < CATCODE_ACTIVE) {
+            my $this_char = $token->get_char();
+
+            if (lc($this_char) ne lc($char)) {
+                $match = 0;
+
+                last;
+            }
+        } elsif (! $tex->is_space_token($token) || $scanned->length() > 0) {
+            $match = 0;
+
+            last;
+        }
+    }
+
+    if (! $match) {
+        $tex->unget_tokens($scanned->get_tokens());
+    }
+
+    return $match;
+}
+
+## NOTE: This returns the dimen as a string, *not* a TokenList.  This
+## also does minimal sanity checking.
+
+sub scan_dimen {
+    my $tex = shift;
+
+    my $cur_val = $tex->read_number();
+
+    my $cur_tok = $tex->peek_next_token();
+
+    if ($cur_tok == continental_point_token || $cur_tok == point_token) {
+        $tex->get_next_token();
+
+        $cur_val .= ".";
+
+        if ((my $frac = $tex->read_integer_constant()) > 0) {
+            $cur_val .= $frac;
+        }
+    }
+
+    # @<Scan for \(a)all other units and adjust |cur_val| and |f| accordingly;
+    #   |goto done| in the case of scaled points@>;
+
+    for my $unit (qw(pt in pc cm mm bp dd nd cc nc sp)) {
+        if ($tex->scan_keyword($unit)) {
+            $cur_val .= $unit;
+
+            last;
+        }
+    }
+
+    $tex->scan_one_optional_space();
+
+    return $cur_val;
 }
 
 ######################################################################
